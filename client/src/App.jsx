@@ -295,7 +295,17 @@ function GMDashboard({ go, session }) {
               <Badge>{SCENARIO.name}</Badge>
             </div>
             {storyShown
-              ? <div className="font-display" style={{ fontSize: 14, color: 'var(--beige)', lineHeight: 2 }}>{SCENARIO.story}</div>
+              ? <div>
+                  <div className="font-display" style={{ fontSize: 14, color: 'var(--beige)', lineHeight: 2, marginBottom: 12 }}>{SCENARIO.story}</div>
+                  <div style={{ background: 'rgba(212,164,76,0.06)', borderRadius: 10, padding: 12, border: '1px solid rgba(212,164,76,0.12)' }}>
+                    <div style={{ fontSize: 12, color: 'var(--gold)', marginBottom: 6 }}>📋 ملخص الشخصيات:</div>
+                    {SCENARIO.players.map((sp, i) => (
+                      <div key={i} style={{ fontSize: 12, color: 'var(--text-secondary)', padding: '4px 0', borderBottom: '1px solid rgba(255,255,255,0.03)' }}>
+                        <strong style={{ color: 'var(--beige)' }}>{sp.title}</strong> — {sp.job} | {sp.appearance}
+                      </div>
+                    ))}
+                  </div>
+                </div>
               : <Btn onClick={() => { setStoryShown(true); log('تم عرض القصة'); }}>اعرض القصة</Btn>
             }
           </div>
@@ -312,16 +322,26 @@ function GMDashboard({ go, session }) {
                 </>
               : <div className="stagger" style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                   {players.filter(p => !p.isGM).map(p => (
-                    <div key={p.id} className={`player-chip anim-slide ${p.status === 'ghost' ? 'ghost' : ''}`}>
-                      <PlayerAvatar name={p.name} variant={p.role === 'mafia' ? 'crimson' : 'gold'} size={32} />
-                      <div style={{ flex: 1 }}>
-                        <div style={{ fontSize: 14, color: 'var(--text-primary)' }}>{p.name}</div>
-                        <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{p.title}</div>
+                    <div key={p.id} className="card anim-slide" style={{ marginBottom: 8, padding: 14, borderRight: p.role === 'mafia' ? '3px solid var(--crimson)' : '3px solid var(--green)' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: revealed[p.id] ? 10 : 0 }}>
+                        <PlayerAvatar name={p.name} variant={p.role === 'mafia' ? 'crimson' : 'gold'} size={36} />
+                        <div style={{ flex: 1 }}>
+                          <div style={{ fontSize: 15, color: 'var(--text-primary)', fontWeight: 700 }}>{p.name}</div>
+                          <div style={{ fontSize: 12, color: 'var(--gold)' }}>{p.title} — {p.job}</div>
+                        </div>
+                        {revealed[p.id]
+                          ? <Badge variant={p.role === 'mafia' ? 'crimson' : 'green'}>{p.role === 'mafia' ? '🎭 مافيوسو' : '😇 بريء'}</Badge>
+                          : <button className="btn btn-outline btn-sm" style={{ width: 'auto' }} onClick={() => setRevealed(r => ({ ...r, [p.id]: true }))}>👁 تفاصيل</button>
+                        }
                       </div>
-                      {revealed[p.id]
-                        ? <Badge variant={p.role === 'mafia' ? 'crimson' : 'green'}>{p.role === 'mafia' ? '🎭 مافيوسو' : '😇 بريء'}</Badge>
-                        : <button className="btn btn-outline btn-sm" style={{ width: 'auto' }} onClick={() => setRevealed(r => ({ ...r, [p.id]: true }))}>👁</button>
-                      }
+                      {revealed[p.id] && (
+                        <div style={{ borderTop: '1px solid rgba(212,164,76,0.1)', paddingTop: 10 }}>
+                          <div style={{ display: 'grid', gap: 8 }}>
+                            <div><span style={{ fontSize: 11, color: 'var(--gold)' }}>👔 المظهر:</span><div style={{ fontSize: 13, color: 'var(--text-secondary)', marginTop: 2 }}>{p.appearance}</div></div>
+                            {p.secret && <div style={{ background: 'rgba(155,27,48,0.08)', borderRadius: 8, padding: '8px 10px', border: '1px solid rgba(155,27,48,0.15)' }}><span style={{ fontSize: 11, color: 'var(--crimson-light)' }}>🤫 السر:</span><div style={{ fontSize: 13, color: 'var(--text-primary)', marginTop: 2 }}>{p.secret}</div></div>}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -476,9 +496,9 @@ function PlayerView({ go, session }) {
   useSocketEvent(EV.ROOM_UPDATE, ({ state: s }) => {
     setState(s);
     if (s.myStatus === 'ghost' && screen !== 'ghost') { setScreen('ghost'); SFX.ghost(); }
-    if (s.votingOpen && screen === 'playing') { setScreen('voting'); setVoted(false); setVoteSel(null); }
+    if (s.votingOpen && !voted && screen !== 'voting' && screen !== 'ghost' && screen !== 'waiting') { setScreen('voting'); setVoted(false); setVoteSel(null); }
     if (s.ghostVotingOpen && s.myStatus === 'ghost') { setScreen('verdict'); setVerdictDone(false); }
-    if (!s.votingOpen && screen === 'voting' && voted) setScreen('playing');
+    if (!s.votingOpen && screen === 'voting') setScreen('playing');
   });
 
   useSocketEvent(EV.ROLE_REVEAL, (data) => { setMyRole(data); setScreen('reveal'); });
